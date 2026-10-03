@@ -1,0 +1,51 @@
+@import "#app/shared/styles/page.css";
+
+.invoice-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.invoice-actions .card-body {
+  padding: var(--space-5);
+}
+
+.pay-link {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  word-break: break-all;
+  color: var(--ink-soft);
+}
+
+.invoice-timeline {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.invoice-timeline li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.invoice-timeline li span:last-child {
+  color: var(--ink-soft);
+}
+
+@media (max-width: 64rem) {
+  .invoice-page {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 48rem) {
+  .link-muted {
+    display: inline-block;
+    padding-block: var(--space-2);
+  }
+}

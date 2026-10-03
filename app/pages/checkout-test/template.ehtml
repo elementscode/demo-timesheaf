@@ -1,0 +1,90 @@
+import "./style.css";
+import { redirect } from "@elements/app";
+import { Invoice, InvoiceLine } from "#app/shared/services/invoices";
+import { hours, invoiceNumber, money } from "#app/shared/format";
+import { payTestInvoice } from "./services";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+
+function onPay(state: { busy: boolean; error: string }, token: string) {
+  state.busy = true;
+  state.error = "";
+
+  try {
+    payTestInvoice(token);
+    redirect(`/pay/${token}`);
+  } catch (err: any) {
+    state.error = err.message;
+    state.busy = false;
+  }
+}
+
+<html lang="en" class="page-checkout-test" (
+  agency: string,
+  invoice: Invoice,
+  lines: InvoiceLine[],
+  private state: { busy: boolean; error: string } = { busy: false, error: "" },
+)>
+  <head>
+    <title>Checkout · {agency}</title>
+    <meta name="description" content="Test checkout for an invoice.">
+    <meta name="robots" content="noindex">
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <div class="checkout-shell">
+      <main class="checkout-main">
+        <section class="checkout-summary stack is-lg">
+          <a class="checkout-back row" href={`/pay/${invoice.token}`}>
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            {agency}
+          </a>
+
+          <div class="stack is-xs">
+            <p class="checkout-label">Invoice {invoiceNumber(invoice.number)} for {invoice.clientName}</p>
+            <p class="checkout-amount num">{money(invoice.totalCents)}</p>
+          </div>
+
+          <ul class="checkout-lines">
+            <li e:for={line of lines} class="checkout-line">
+              <div class="checkout-line-text">
+                <span class="checkout-line-name">{line.description}</span>
+                <span class="checkout-line-meta num">{hours(line.seconds)} h at {money(line.rateCents)}/h</span>
+              </div>
+              <span class="num">{money(line.amountCents)}</span>
+            </li>
+          </ul>
+
+          <div class="checkout-total row">
+            <span>Total due</span>
+            <span class="num">{money(invoice.totalCents)}</span>
+          </div>
+        </section>
+
+        <section class="card checkout-pay stack is-lg">
+          <div class="row checkout-pay-head">
+            <h1>Pay invoice</h1>
+            <span class="pill is-warning"><span class="pill-dot"></span>Test mode</span>
+          </div>
+
+          <dl class="checkout-email">
+            <dt>Receipt to</dt>
+            <dd>{invoice.clientEmail}</dd>
+          </dl>
+
+          <p e:if={state.error} class="error" role="alert">{state.error}</p>
+
+          <div class="stack is-sm">
+            <button class="is-primary is-lg checkout-button" disabled={state.busy} onclick={() => onPay(state, invoice.token)}>
+              {state.busy ? "Paying…" : `Pay ${money(invoice.totalCents)}`}
+            </button>
+            <a class="checkout-cancel" href={`/pay/${invoice.token}`}>Cancel</a>
+          </div>
+
+          <p class="checkout-note">
+            This is the built-in test checkout: no card is charged and no card details are asked for. Paying here marks the invoice paid exactly as a Stripe payment would. Add <code>STRIPE_SECRET_KEY</code> to <code>config/env/development.env</code> to switch to real Stripe Checkout.
+          </p>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

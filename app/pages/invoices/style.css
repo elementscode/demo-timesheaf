@@ -1,0 +1,128 @@
+@import "#app/shared/styles/page.css";
+@import "#app/shared/styles/invoice.css";
+
+.invoices-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24rem;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.invoice-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.invoice-tile {
+  padding: var(--space-4) var(--space-5);
+}
+
+.invoice-tile p {
+  margin: 0;
+}
+
+.tile-label {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+
+.tile-value {
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.tile-note {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.invoice-table {
+  width: 100%;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoice-table th:first-child,
+.invoice-table td:first-child {
+  padding-inline-start: var(--space-5);
+}
+
+.invoice-table th:last-child,
+.invoice-table td:last-child {
+  padding-inline-end: var(--space-5);
+  text-align: end;
+}
+
+.invoice-table .is-amount {
+  text-align: end;
+  white-space: nowrap;
+}
+
+.invoice-table td {
+  vertical-align: middle;
+}
+
+.invoice-table a {
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+.invoice-table small {
+  display: block;
+  color: var(--ink-soft);
+}
+
+.invoice-list .card-body {
+  padding: 0;
+  overflow-x: auto;
+}
+
+.invoice-list .tab-list {
+  padding-inline: var(--space-4);
+}
+
+.preview-lines {
+  width: 100%;
+  margin: 0;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.preview-lines td:last-child,
+.preview-lines th:last-child {
+  text-align: end;
+}
+
+.preview-lines tfoot td {
+  font-weight: var(--weight-semibold);
+}
+
+.range-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.range-pair .field {
+  margin: 0;
+}
+
+@media (max-width: 64rem) {
+  .invoices-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 40rem) {
+  .invoice-tiles {
+    grid-template-columns: 1fr;
+  }
+
+  .invoice-table .is-period {
+    display: none;
+  }
+}

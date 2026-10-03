@@ -1,0 +1,403 @@
+import "./style.css";
+import { LiveView } from "@elements/app";
+import { AppShell } from "#app/shared/templates/app-shell";
+import { CurrentUser } from "#app/shared/services/auth";
+import { Entry, ProjectOption } from "#app/shared/services/entries";
+import { addDays, clock, duration, hours, initials, isoDate, parseDate, parseDuration, weekStart } from "#app/shared/format";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+
+interface TimerForm {
+  projectId: string;
+  note: string;
+  error: string;
+}
+
+interface ManualForm {
+  projectId: string;
+  workDate: string;
+  duration: string;
+  note: string;
+  billable: boolean;
+  error: string;
+}
+
+interface DayGroup {
+  id: string;
+  date: string;
+  seconds: number;
+  entries: Entry[];
+}
+
+function elapsed(entry: Entry, now: number): number {
+  if (!entry.startedAt) {
+    return entry.seconds;
+  }
+
+  return entry.seconds + Math.max(0, Math.floor((now - new Date(entry.startedAt).getTime()) / 1000));
+}
+
+function runningEntry(own: LiveView<Entry>): Entry | undefined {
+  return own.find((e) => e.startedAt != null);
+}
+
+function dayLabel(date: string, today: string): string {
+  if (date === today) {
+    return "Today";
+  }
+
+  if (date === addDays(today, -1)) {
+    return "Yesterday";
+  }
+
+  return parseDate(date).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+}
+
+/** The last two weeks of the person's entries, newest day first. */
+function recentDays(own: LiveView<Entry>, today: string, now: number): DayGroup[] {
+  let since = addDays(today, -13);
+  let days = new Map<string, DayGroup>();
+
+  let recent = own
+    .filter((e) => e.workDate >= since)
+    .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+
+  for (let entry of recent) {
+    let day = days.get(entry.workDate);
+
+    if (!day) {
+      day = { id: entry.workDate, date: entry.workDate, seconds: 0, entries: [] };
+      days.set(entry.workDate, day);
+    }
+
+    day.entries.push(entry);
+    day.seconds += elapsed(entry, now);
+  }
+
+  return [...days.values()].sort((a, b) => (a.date < b.date ? 1 : -1));
+}
+
+function weekTotals(own: LiveView<Entry>, today: string, now: number) {
+  let monday = weekStart(today);
+  let week = own.filter((e) => e.workDate >= monday && e.workDate <= addDays(monday, 6));
+
+  let sum = (list: Entry[]) => list.reduce((total, e) => total + elapsed(e, now), 0);
+
+  return {
+    today: sum(week.filter((e) => e.workDate === today)),
+    week: sum(week),
+    billable: sum(week.filter((e) => e.billable)),
+    entries: week.length,
+  };
+}
+
+function project(projects: ProjectOption[], id: string): ProjectOption | undefined {
+  return projects.find((p) => p.id === id);
+}
+
+function newEntry(me: CurrentUser, p: ProjectOption, fields: Partial<Entry>): Partial<Entry> {
+  return {
+    projectId: p.id,
+    workDate: isoDate(new Date()),
+    seconds: 0,
+    startedAt: null,
+    note: "",
+    billable: true,
+    invoiceId: null,
+    createdAt: new Date(),
+    projectName: p.name,
+    projectColor: p.color,
+    clientName: p.clientName,
+    userName: me.name,
+    ...fields,
+  };
+}
+
+function stopRunning(own: LiveView<Entry>, now: number) {
+  let running = runningEntry(own);
+
+  if (running) {
+    own.update({ ...running, startedAt: null, seconds: elapsed(running, now) });
+  }
+}
+
+function onStart(own: LiveView<Entry>, me: CurrentUser, projects: ProjectOption[], form: TimerForm, projectId: string, note: string) {
+  let p = project(projects, projectId);
+
+  if (!p) {
+    form.error = "Pick a project to start the timer.";
+    return;
+  }
+
+  try {
+    stopRunning(own, Date.now());
+    own.insert(newEntry(me, p, { startedAt: new Date(), note: note.trim() }), () => form.note = "");
+    form.projectId = p.id;
+    form.error = "";
+  } catch (err: any) {
+    form.error = err.message;
+  }
+}
+
+function onStop(own: LiveView<Entry>, form: TimerForm, entry: Entry) {
+  try {
+    own.update({ ...entry, startedAt: null, seconds: elapsed(entry, Date.now()) });
+    form.error = "";
+  } catch (err: any) {
+    form.error = err.message;
+  }
+}
+
+function onAddManual(own: LiveView<Entry>, me: CurrentUser, projects: ProjectOption[], form: ManualForm) {
+  let p = project(projects, form.projectId);
+  let seconds = parseDuration(form.duration);
+
+  if (!p) {
+    form.error = "Pick a project.";
+    return;
+  }
+
+  if (!seconds) {
+    form.error = "Enter a duration like 1.5, 1:30 or 45m.";
+    return;
+  }
+
+  try {
+    own.insert(
+      newEntry(me, p, { workDate: form.workDate, seconds, note: form.note.trim(), billable: form.billable }),
+      () => {
+        form.duration = "";
+        form.note = "";
+        form.error = "";
+      },
+    );
+  } catch (err: any) {
+    form.error = err.message;
+  }
+}
+
+function onDelete(own: LiveView<Entry>, entry: Entry) {
+  if (confirm(`Delete ${duration(entry.seconds)} on ${entry.projectName}?`)) {
+    own.delete(entry);
+  }
+}
+
+function onTick(tick: { now: number }) {
+  tick.now = Date.now();
+}
+
+<html lang="en" class="page-track" (
+  me: CurrentUser,
+  projects: ProjectOption[],
+  own: LiveView<Entry>,
+  team: LiveView<Entry>,
+  lastProjectId: string,
+  private tick: { now: number } = { now: Date.now() },
+  private today: string = isoDate(new Date()),
+  private timer: TimerForm = { projectId: lastProjectId, note: "", error: "" },
+  private manual: ManualForm = { projectId: lastProjectId, workDate: isoDate(new Date()), duration: "", note: "", billable: true, error: "" },
+) oninit={() => setInterval(() => onTick(tick), 1000)}>
+  <head>
+    <title>Track · timesheaf</title>
+    <meta name="description" content="Track time against client projects.">
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <AppShell {me} active="track">
+      <div class="track-grid">
+        <div class="stack is-xl">
+          <TimerCard {own} {me} {projects} {timer} now={tick.now} />
+
+          <section class="card">
+            <div class="card-head"><h2>Add time by hand</h2></div>
+            <div class="card-body stack">
+              <form class="manual-form" onsubmit={() => onAddManual(own, me, projects, manual)}>
+                <div class="field is-project">
+                  <label for="manual-project">Project</label>
+                  <select id="manual-project" value={manual.projectId}>
+                    <option e:for={p of projects} value={p.id}>{p.clientName} · {p.name}</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="manual-date">Date</label>
+                  <input id="manual-date" type="date" value={manual.workDate} max={today} required>
+                </div>
+
+                <div class="field">
+                  <label for="manual-duration">Hours</label>
+                  <input id="manual-duration" value={manual.duration} placeholder="1:30" inputmode="decimal" required>
+                </div>
+
+                <div class="field is-note">
+                  <label for="manual-note">Note</label>
+                  <input id="manual-note" value={manual.note} placeholder="What did you work on?">
+                </div>
+
+                <button type="submit" class="is-primary">Add</button>
+              </form>
+
+              <div class="manual-foot cluster">
+                <label><input type="checkbox" checked={manual.billable}> Billable</label>
+                <p e:if={manual.error} class="error" role="alert">{manual.error}</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="stack">
+            <h2>Recent time</h2>
+
+            <p e:if={recentDays(own, today, tick.now).length === 0} class="empty-note">No time in the last two weeks. Start the timer above.</p>
+
+            <div>
+              <div e:for={day of recentDays(own, today, tick.now)} class="day-group">
+                <div class="day-head row">
+                  <h3>{dayLabel(day.date, today)}</h3>
+                  <span class="num">{hours(day.seconds)} h</span>
+                </div>
+
+                <ul class="entry-list">
+                  <EntryRow e:for={entry of day.entries} {entry} {own} {me} {projects} {timer} now={tick.now} />
+                </ul>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="stack is-lg">
+          <TeamNow {team} {me} now={tick.now} />
+
+          <section class="card side-card">
+            <div class="card-head"><h2>Your week</h2></div>
+            <div class="card-body">
+              <dl class="week-stats">
+                <div>
+                  <dt>Today</dt>
+                  <dd>{hours(weekTotals(own, today, tick.now).today)}</dd>
+                </div>
+                <div>
+                  <dt>This week</dt>
+                  <dd>{hours(weekTotals(own, today, tick.now).week)}</dd>
+                </div>
+                <div>
+                  <dt>Billable</dt>
+                  <dd>{hours(weekTotals(own, today, tick.now).billable)}</dd>
+                </div>
+                <div>
+                  <dt>Entries</dt>
+                  <dd>{weekTotals(own, today, tick.now).entries}</dd>
+                </div>
+              </dl>
+            </div>
+            <div class="card-foot">
+              <a class="button is-sm" href="/week">Open week view</a>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </AppShell>
+  </body>
+</html>
+
+<TimerCard (
+  own: LiveView<Entry>,
+  me: CurrentUser,
+  projects: ProjectOption[],
+  timer: TimerForm,
+  now: number,
+)>
+  <section class={["card timer-card", runningEntry(own) && "is-running"]} aria-label="Timer">
+    <div class="card-body stack">
+      <div class="timer-row">
+        <div class="timer-clock" aria-live="off">{runningEntry(own) ? clock(elapsed(runningEntry(own)!, now)) : "0:00:00"}</div>
+
+        <div e:if={runningEntry(own)} class="timer-running">
+          <div class="timer-project row">
+            <span class="swatch" style={{ background: runningEntry(own)!.projectColor }}></span>
+            <span class="truncate">{runningEntry(own)!.projectName} <small>· {runningEntry(own)!.clientName}</small></span>
+          </div>
+          <button class="is-danger" onclick={() => onStop(own, timer, runningEntry(own)!)}>Stop</button>
+          <input value={runningEntry(own)!.note} placeholder="What are you working on?" aria-label="Note">
+        </div>
+
+        <form e:else class="timer-form" onsubmit={() => onStart(own, me, projects, timer, timer.projectId, timer.note)}>
+          <select value={timer.projectId} aria-label="Project">
+            <option e:for={p of projects} value={p.id}>{p.clientName} · {p.name}</option>
+          </select>
+          <input value={timer.note} placeholder="What are you working on?" aria-label="Note">
+          <button type="submit" class="is-primary">Start timer</button>
+        </form>
+      </div>
+
+      <div class="timer-status row">
+        <span e:if={runningEntry(own)} class="live-dot"></span>
+        <span e:if={runningEntry(own)}>Running since {new Date(runningEntry(own)!.startedAt!).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}. The note saves when you stop.</span>
+        <span e:else>Pick a project and start. Starting another timer stops this one.</span>
+        <p e:if={timer.error} class="error" role="alert">{timer.error}</p>
+      </div>
+    </div>
+  </section>
+</TimerCard>
+
+<EntryRow (
+  entry: Entry,
+  own: LiveView<Entry>,
+  me: CurrentUser,
+  projects: ProjectOption[],
+  timer: TimerForm,
+  now: number,
+)>
+  <li class={["entry", entry.startedAt && "is-running"]}>
+    <span class="swatch" style={{ background: entry.projectColor }}></span>
+
+    <div class="entry-what">
+      <div class="cluster is-xs">
+        <strong>{entry.projectName}</strong>
+        <small>{entry.clientName}</small>
+        <span e:if={entry.invoiceId} class="pill">Invoiced</span>
+        <span e:if={!entry.billable} class="pill is-warning">Non-billable</span>
+      </div>
+      <div e:if={entry.note} class="entry-note truncate">{entry.note}</div>
+    </div>
+
+    <span class="entry-time">{entry.startedAt ? clock(elapsed(entry, now)) : duration(entry.seconds)}</span>
+
+    <div class="entry-actions row">
+      <button e:if={!entry.startedAt}
+              title="Start a timer on this"
+              aria-label={`Start a timer on ${entry.projectName}`}
+              onclick={() => onStart(own, me, projects, timer, entry.projectId, entry.note)}>
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.5v9l7-4.5z" fill="currentColor"/></svg>
+      </button>
+      <button e:if={!entry.invoiceId && !entry.startedAt}
+              title="Delete"
+              aria-label={`Delete entry on ${entry.projectName}`}
+              onclick={() => onDelete(own, entry)}>
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 4.5h9M6.5 4.5V3h3v1.5M5 4.5l.5 8h5l.5-8" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </li>
+</EntryRow>
+
+<TeamNow (team: LiveView<Entry>, me: CurrentUser, now: number)>
+  <section class="card side-card">
+    <div class="card-head row">
+      <h2>Running now</h2>
+    </div>
+    <div class="card-body">
+      <p e:if={team.filter((e) => e.startedAt != null).length === 0} class="entry-note">No timers running.</p>
+
+      <ul class="team-list">
+        <li e:for={entry of team.filter((e) => e.startedAt != null)} class="team-row">
+          <span class="avatar is-sm" title={entry.userName}>{initials(entry.userName)}</span>
+          <div class="entry-what truncate">
+            <strong>{entry.userId === me.id ? "You" : entry.userName}</strong>
+            <div class="entry-note truncate">
+              <span class="swatch" style={{ background: entry.projectColor }}></span> {entry.projectName}
+            </div>
+          </div>
+          <span class="team-clock">{clock(elapsed(entry, now))}</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+</TeamNow>

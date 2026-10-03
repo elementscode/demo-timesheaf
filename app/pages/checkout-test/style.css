@@ -1,0 +1,150 @@
+@import "#app/shared/styles/page.css";
+
+.checkout-shell {
+  min-height: 100dvh;
+  background: var(--bg-soft);
+}
+
+.checkout-main {
+  width: 100%;
+  max-width: 60rem;
+  margin-inline: auto;
+  padding: var(--space-16) var(--space-6);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 24rem);
+  gap: var(--space-12);
+  align-items: start;
+}
+
+.checkout-back {
+  gap: var(--space-1);
+  width: fit-content;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.checkout-back:hover {
+  color: var(--ink);
+}
+
+.checkout-label {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.checkout-amount {
+  margin: 0;
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.checkout-lines {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checkout-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.checkout-line-text {
+  display: grid;
+  gap: 2px;
+}
+
+.checkout-line-name {
+  font-weight: var(--weight-medium);
+}
+
+.checkout-line-meta {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.checkout-total {
+  justify-content: space-between;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule);
+  font-weight: var(--weight-semibold);
+}
+
+.checkout-pay {
+  padding: var(--space-6);
+}
+
+.checkout-pay-head {
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.checkout-pay h1 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.checkout-email {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--bg-soft);
+}
+
+.checkout-email dt {
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+
+.checkout-email dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.checkout-button {
+  width: 100%;
+}
+
+.checkout-cancel {
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.checkout-note {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.checkout-pay .error {
+  margin: 0;
+}
+
+@media (max-width: 48rem) {
+  .checkout-main {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-8);
+    padding: var(--space-6) var(--space-4) var(--space-12);
+  }
+}
+
+@media (max-width: 48rem) {
+  .checkout-back,
+  .checkout-cancel {
+    min-height: 2.5rem;
+  }
+
+  .checkout-cancel {
+    display: grid;
+    place-items: center;
+  }
+}

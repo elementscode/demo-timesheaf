@@ -1,0 +1,76 @@
+import "./style.css";
+import type { Invoice, InvoiceLine } from "#app/shared/services/invoices";
+import { dateRange, hours, invoiceNumber, longDate, money } from "#app/shared/format";
+
+function statusClass(status: string): string {
+  return status === "paid" ? "is-success" : status === "sent" ? "is-info" : "";
+}
+
+/** The invoice as a document: the client sees this, and so does the admin. */
+<InvoiceDoc (agency: string, invoice: Invoice, lines: InvoiceLine[])>
+  <article class="card invoice-doc stack is-xl">
+    <header class="invoice-doc-head">
+      <div class="stack is-xs">
+        <p class="eyebrow">{agency}</p>
+        <h2>Invoice {invoiceNumber(invoice.number)}</h2>
+      </div>
+      <div class="invoice-total stack is-xs">
+        <p class="invoice-amount">{money(invoice.totalCents)}</p>
+        <span>
+          <span class={["pill status-pill", statusClass(invoice.status), invoice.status === "paid" && "status-flash"]}>
+            <span e:if={invoice.status !== "draft"} class="pill-dot"></span>
+            {invoice.status}
+          </span>
+        </span>
+      </div>
+    </header>
+
+    <dl class="invoice-parties">
+      <div>
+        <dt>Billed to</dt>
+        <dd>
+          <strong>{invoice.clientName}</strong><br>
+          <span e:if={invoice.clientContact}>{invoice.clientContact}<br></span>
+          {invoice.clientEmail}
+        </dd>
+      </div>
+      <div>
+        <dt>Period</dt>
+        <dd>{dateRange(invoice.periodStart, invoice.periodEnd)}</dd>
+      </div>
+      <div>
+        <dt e:if={invoice.status === "paid"}>Paid</dt>
+        <dt e:else>Due</dt>
+        <dd e:if={invoice.status === "paid"}>{invoice.paidAt ? new Date(invoice.paidAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : ""}</dd>
+        <dd e:elseif={invoice.dueDate}>{longDate(invoice.dueDate ?? "")}</dd>
+        <dd e:else>30 days after sending</dd>
+      </div>
+    </dl>
+
+    <table class="invoice-lines">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Hours</th>
+          <th class="is-rate">Rate</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr e:for={line of lines}>
+          <td>{line.description}</td>
+          <td>{hours(line.seconds)}</td>
+          <td class="is-rate">{money(line.rateCents)}</td>
+          <td>{money(line.amountCents)}</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2">{invoice.status === "paid" ? "Total paid" : "Total due"}</td>
+          <td class="is-rate"></td>
+          <td>{money(invoice.totalCents)}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </article>
+</InvoiceDoc>

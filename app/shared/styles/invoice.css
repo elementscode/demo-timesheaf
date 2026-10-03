@@ -1,0 +1,118 @@
+/* Invoice pieces shared by the admin pages and the client's pay page. */
+
+.status-pill {
+  text-transform: capitalize;
+}
+
+.invoice-doc {
+  padding: var(--space-8);
+}
+
+.invoice-doc-head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.invoice-doc-head h1,
+.invoice-doc-head h2 {
+  margin: 0;
+}
+
+.invoice-parties {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-6);
+  margin: 0;
+}
+
+.invoice-parties dt {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+
+.invoice-parties dd {
+  margin: var(--space-1) 0 0;
+}
+
+.invoice-lines {
+  width: 100%;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoice-lines th:not(:first-child),
+.invoice-lines td:not(:first-child) {
+  text-align: end;
+  white-space: nowrap;
+}
+
+.invoice-lines tfoot td {
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-lg);
+  border-bottom: 0;
+}
+
+.invoice-amount {
+  font-size: var(--text-4xl);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.status-flash {
+  animation: status-flash 1.6s ease-out;
+}
+
+@keyframes status-flash {
+  from {
+    box-shadow: 0 0 0 6px color-mix(in oklab, var(--success) 35%, transparent);
+  }
+
+  to {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.invoice-total {
+  align-items: flex-end;
+  text-align: end;
+}
+
+@media (max-width: 40rem) {
+  .invoice-doc {
+    padding: var(--space-5);
+  }
+
+  .invoice-total {
+    align-items: flex-start;
+    text-align: start;
+  }
+
+  .invoice-amount {
+    font-size: var(--text-3xl);
+  }
+
+  .invoice-lines .is-rate {
+    display: none;
+  }
+
+  .invoice-lines th,
+  .invoice-lines td {
+    padding-inline: var(--space-1);
+  }
+
+  .invoice-lines tfoot td {
+    font-size: var(--text-md);
+  }
+
+  .invoice-parties {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+}

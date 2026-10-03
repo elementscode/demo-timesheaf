@@ -1,0 +1,131 @@
+@import "#app/shared/styles/page.css";
+
+.signin-shell {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.signin-aside {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--space-10);
+  background: var(--accent-soft);
+  border-inline-end: 1px solid var(--rule);
+  overflow: hidden;
+}
+
+.signin-aside h1 {
+  max-width: 20ch;
+  font-size: clamp(var(--text-3xl), 3.4vw, var(--text-5xl));
+  line-height: var(--leading-tight);
+  letter-spacing: -0.03em;
+}
+
+.signin-aside .lede {
+  max-width: 34ch;
+}
+
+.signin-week {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-2);
+  max-width: 22rem;
+  align-items: end;
+  height: 7rem;
+}
+
+.signin-week span {
+  border-radius: var(--radius-sm) var(--radius-sm) 2px 2px;
+  background: var(--accent);
+  opacity: 0.85;
+}
+
+.signin-week span:nth-child(2n) {
+  opacity: 0.55;
+}
+
+.signin-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-10) var(--space-6);
+}
+
+.signin-panel {
+  width: 100%;
+  max-width: 24rem;
+}
+
+.signin-panel h2 {
+  font-size: var(--text-2xl);
+}
+
+.demo-logins {
+  border-top: 1px solid var(--rule);
+  padding-top: var(--space-5);
+}
+
+.demo-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.demo-login {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  height: auto;
+  padding: var(--space-2) var(--space-3);
+  justify-content: flex-start;
+  text-align: start;
+}
+
+.demo-login .avatar {
+  flex: none;
+}
+
+.demo-who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: var(--leading-snug);
+}
+
+.demo-who strong {
+  font-weight: var(--weight-medium);
+}
+
+.demo-who small {
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.demo-login .pill {
+  margin-inline-start: auto;
+}
+
+@media (max-width: 48rem) {
+  .signin-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .signin-aside {
+    padding: var(--space-6);
+    gap: var(--space-5);
+    border-inline-end: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .signin-week {
+    display: none;
+  }
+
+  .signin-main {
+    padding: var(--space-8) var(--space-5);
+  }
+}

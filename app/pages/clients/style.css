@@ -1,0 +1,151 @@
+@import "#app/shared/styles/page.css";
+
+.clients-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22rem;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.client-card .card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.client-contact {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.client-card .card-body {
+  padding: 0;
+}
+
+.project-table {
+  width: 100%;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.project-table th:not(:first-child),
+.project-table td:not(:first-child) {
+  text-align: end;
+}
+
+.project-table td:first-child {
+  padding-inline-start: var(--space-5);
+}
+
+.project-table th:first-child {
+  padding-inline-start: var(--space-5);
+}
+
+.project-table td:last-child,
+.project-table th:last-child {
+  padding-inline-end: var(--space-5);
+}
+
+.project-table tr.is-archived td {
+  color: var(--ink-dim);
+}
+
+.project-name {
+  gap: var(--space-2);
+}
+
+.rate-input {
+  width: 6.5rem;
+  text-align: end;
+}
+
+.add-project {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 7rem 3rem auto;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--rule);
+  background: var(--bg-soft);
+}
+
+.add-project input[type="color"] {
+  padding: var(--space-1);
+}
+
+@media (max-width: 64rem) {
+  .clients-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 40rem) {
+  .add-project {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .add-project .is-name {
+    grid-column: 1 / -1;
+  }
+
+  .add-project button {
+    grid-column: 1 / -1;
+  }
+
+  .project-table .is-hours {
+    display: none;
+  }
+}
+
+.project-table {
+  table-layout: fixed;
+}
+
+.project-table td {
+  vertical-align: middle;
+}
+
+.project-table .col-hours {
+  width: 6rem;
+}
+
+.project-table .col-money {
+  width: 8rem;
+}
+
+.project-table .col-rate {
+  width: 8.5rem;
+}
+
+.project-table .col-actions {
+  width: 6.5rem;
+}
+
+.rate-input {
+  margin-inline-start: auto;
+}
+
+@media (max-width: 40rem) {
+  .project-table {
+    table-layout: auto;
+  }
+
+  .project-table col {
+    width: auto;
+  }
+
+  .project-table th:not(:first-child),
+  .project-table td:not(:first-child) {
+    white-space: nowrap;
+    padding-inline-start: var(--space-2);
+  }
+
+  .project-table th:first-child {
+    width: 100%;
+  }
+
+  .rate-input {
+    width: 5rem;
+  }
+}

@@ -1,0 +1,195 @@
+import "./style.css";
+import { LiveView, redirect } from "@elements/app";
+import { AppShell } from "#app/shared/templates/app-shell";
+import { CurrentUser } from "#app/shared/services/auth";
+import { Entry } from "#app/shared/services/entries";
+import { addDays, dateRange, hours, isoDate, parseDate, shortDate } from "#app/shared/format";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+
+export interface Person {
+  id: string;
+  name: string;
+}
+
+export interface WeekRow {
+  id: string;
+  name: string;
+  clientName: string;
+  color: string;
+  days: number[];
+  running: boolean[];
+  total: number;
+}
+
+export interface WeekGrid {
+  rows: WeekRow[];
+  dayTotals: number[];
+  total: number;
+  billable: number;
+}
+
+function seconds(entry: Entry, now: number): number {
+  if (!entry.startedAt) {
+    return entry.seconds;
+  }
+
+  return entry.seconds + Math.max(0, Math.floor((now - new Date(entry.startedAt).getTime()) / 1000));
+}
+
+/** Hours per project per day for the seven days from start. */
+export function weekGrid(entries: Iterable<Entry>, start: string, now: number): WeekGrid {
+  let days = [0, 1, 2, 3, 4, 5, 6].map((i) => addDays(start, i));
+  let rows = new Map<string, WeekRow>();
+  let grid: WeekGrid = { rows: [], dayTotals: [0, 0, 0, 0, 0, 0, 0], total: 0, billable: 0 };
+
+  for (let entry of entries) {
+    let day = days.indexOf(entry.workDate);
+
+    if (day < 0) {
+      continue;
+    }
+
+    let row = rows.get(entry.projectId);
+
+    if (!row) {
+      row = {
+        id: entry.projectId,
+        name: entry.projectName,
+        clientName: entry.clientName,
+        color: entry.projectColor,
+        days: [0, 0, 0, 0, 0, 0, 0],
+        running: [false, false, false, false, false, false, false],
+        total: 0,
+      };
+      rows.set(entry.projectId, row);
+    }
+
+    let s = seconds(entry, now);
+    row.days[day] += s;
+    row.running[day] ||= entry.startedAt != null;
+    row.total += s;
+    grid.dayTotals[day] += s;
+    grid.total += s;
+
+    if (entry.billable) {
+      grid.billable += s;
+    }
+  }
+
+  grid.rows = [...rows.values()].sort((a, b) => b.total - a.total);
+
+  return grid;
+}
+
+function cell(s: number): string {
+  return s === 0 ? "–" : hours(s);
+}
+
+function weekUrl(start: string, person: Person, me: CurrentUser): string {
+  return person.id === me.id ? `/week?start=${start}` : `/week?start=${start}&user=${person.id}`;
+}
+
+function onPerson(start: string, userId: string) {
+  redirect(`/week?start=${start}&user=${userId}`);
+}
+
+function onTick(tick: { now: number }) {
+  tick.now = Date.now();
+}
+
+<html lang="en" class="page-week" (
+  me: CurrentUser,
+  people: Person[],
+  person: Person,
+  start: string,
+  entries: LiveView<Entry>,
+  private tick: { now: number } = { now: Date.now() },
+  private today: string = isoDate(new Date()),
+  private days: string[] = [0, 1, 2, 3, 4, 5, 6].map((i) => addDays(start, i)),
+  private pick: { userId: string } = { userId: person.id },
+) oninit={() => setInterval(() => onTick(tick), 15000)}>
+  <head>
+    <title>Week · timesheaf</title>
+    <meta name="description" content="Hours per project per day.">
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <AppShell {me} active="week">
+      <div class="stack is-xl">
+        <div class="week-head row">
+          <div class="stack is-xs">
+            <p class="eyebrow">{person.id === me.id ? "Your week" : person.name}</p>
+            <h1>{dateRange(start, days[6])}</h1>
+          </div>
+
+          <div class="week-controls cluster">
+            <select e:if={me.role === "admin"} value={pick.userId} aria-label="Person" onchange={(e) => onPerson(start, (e.target as HTMLSelectElement).value)}>
+              <option e:for={p of people} value={p.id}>{p.name}</option>
+            </select>
+
+            <div class="button-group">
+              <a class="button" href={weekUrl(addDays(start, -7), person, me)} aria-label="Previous week">←</a>
+              <a class="button" href={weekUrl(addDays(today, 0), person, me)}>This week</a>
+              <a class="button" href={weekUrl(addDays(start, 7), person, me)} aria-label="Next week">→</a>
+            </div>
+          </div>
+        </div>
+
+        <section class="card">
+          <div class="week-bars" aria-hidden="true">
+            <div e:for={i of [0, 1, 2, 3, 4, 5, 6].map((n) => ({ id: String(n), n }))} class="week-bar">
+              <span class="num">{weekGrid(entries, start, tick.now).dayTotals[i.n] ? hours(weekGrid(entries, start, tick.now).dayTotals[i.n]) : ""}</span>
+              <div class="week-bar-fill" style={{ height: `${weekGrid(entries, start, tick.now).dayTotals[i.n] / Math.max(28800, ...weekGrid(entries, start, tick.now).dayTotals) * 100}%` }}>
+                <span e:for={row of weekGrid(entries, start, tick.now).rows}
+                      style={{ background: row.color, height: `${row.days[i.n] / Math.max(1, weekGrid(entries, start, tick.now).dayTotals[i.n]) * 100}%` }}></span>
+              </div>
+            </div>
+          </div>
+          <div class="week-bar-labels" aria-hidden="true">
+            <span e:for={d of days.map((day) => ({ id: day, day }))}>{parseDate(d.day).toLocaleDateString("en-US", { weekday: "short" })}</span>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="week-table-wrap">
+            <table class="week-table">
+              <thead>
+                <tr>
+                  <th>Project</th>
+                  <th e:for={d of days.map((day) => ({ id: day, day }))} class={[d.day === today && "is-today"]}>
+                    {parseDate(d.day).toLocaleDateString("en-US", { weekday: "short" })}
+                    <small>{shortDate(d.day)}</small>
+                  </th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr e:for={row of weekGrid(entries, start, tick.now).rows}>
+                  <td>
+                    <span class="week-project row">
+                      <span class="swatch" style={{ background: row.color }}></span>
+                      <span>{row.name} <small>{row.clientName}</small></span>
+                    </span>
+                  </td>
+                  <td e:for={i of [0, 1, 2, 3, 4, 5, 6].map((n) => ({ id: String(n), n }))}
+                      class={[row.days[i.n] === 0 && "is-empty", row.running[i.n] && "is-running", days[i.n] === today && "is-today"]}>{cell(row.days[i.n])}</td>
+                  <td class="week-total">{hours(row.total)}</td>
+                </tr>
+                <tr e:if={weekGrid(entries, start, tick.now).rows.length === 0}>
+                  <td colspan="9" class="is-empty">No time this week.</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td>Total <small class="hint">· {hours(weekGrid(entries, start, tick.now).billable)} billable</small></td>
+                  <td e:for={i of [0, 1, 2, 3, 4, 5, 6].map((n) => ({ id: String(n), n }))} class={[days[i.n] === today && "is-today"]}>{cell(weekGrid(entries, start, tick.now).dayTotals[i.n])}</td>
+                  <td>{hours(weekGrid(entries, start, tick.now).total)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
+      </div>
+    </AppShell>
+  </body>
+</html>

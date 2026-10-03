@@ -1,0 +1,136 @@
+import "./style.css";
+import { LiveView, redirect } from "@elements/app";
+import { AppShell } from "#app/shared/templates/app-shell";
+import { InvoiceDoc } from "#app/shared/templates/invoice-doc";
+import { CurrentUser } from "#app/shared/services/auth";
+import { Invoice, InvoiceLine, deleteDraft, resendInvoice, sendInvoice } from "#app/shared/services/invoices";
+import { invoiceNumber } from "#app/shared/format";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+
+interface Actions {
+  busy: boolean;
+  error: string;
+  notice: string;
+}
+
+function current(live: LiveView<Invoice>, id: string): Invoice | undefined {
+  return live.find((i) => i.id === id);
+}
+
+function when(date: Date | null): string {
+  return date ? new Date(date).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+}
+
+function onSend(actions: Actions, invoice: Invoice) {
+  actions.busy = true;
+
+  try {
+    sendInvoice(invoice.id);
+    actions.notice = `Sent to ${invoice.clientEmail}.`;
+    actions.error = "";
+  } catch (err: any) {
+    actions.error = err.message;
+  }
+
+  actions.busy = false;
+}
+
+function onResend(actions: Actions, invoice: Invoice) {
+  actions.busy = true;
+
+  try {
+    resendInvoice(invoice.id);
+    actions.notice = `Sent again to ${invoice.clientEmail}.`;
+    actions.error = "";
+  } catch (err: any) {
+    actions.error = err.message;
+  }
+
+  actions.busy = false;
+}
+
+function onDelete(actions: Actions, invoice: Invoice) {
+  if (!confirm(`Delete draft ${invoiceNumber(invoice.number)}? Its time goes back to unbilled.`)) {
+    return;
+  }
+
+  try {
+    deleteDraft(invoice.id);
+    redirect("/invoices");
+  } catch (err: any) {
+    actions.error = err.message;
+  }
+}
+
+async function onCopy(actions: Actions, url: string) {
+  await navigator.clipboard.writeText(url);
+  actions.notice = "Pay link copied.";
+}
+
+<html lang="en" class="page-invoice" (
+  me: CurrentUser,
+  agency: string,
+  id: string,
+  live: LiveView<Invoice>,
+  lines: InvoiceLine[],
+  private actions: Actions = { busy: false, error: "", notice: "" },
+)>
+  <head>
+    <title>Invoice · timesheaf</title>
+    <meta name="description" content="Invoice detail.">
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <AppShell {me} active="invoices">
+      <div class="stack is-lg">
+        <a class="link-muted" href="/invoices">← All invoices</a>
+
+        <div e:if={current(live, id)} class="invoice-page">
+          <InvoiceDoc {agency} invoice={current(live, id)!} {lines} />
+
+          <aside class="stack">
+            <section class="card invoice-actions">
+              <div class="card-body stack">
+                <p e:if={actions.error} class="error" role="alert">{actions.error}</p>
+                <p e:if={actions.notice} class="callout is-success" role="status">{actions.notice}</p>
+
+                <div e:if={current(live, id)!.status === "draft"} class="stack is-sm">
+                  <p class="hint">Sending emails {current(live, id)!.clientEmail} a link to view and pay by card.</p>
+                  <button class="is-primary is-block" disabled={actions.busy} onclick={() => onSend(actions, current(live, id)!)}>Send invoice</button>
+                  <button class="is-ghost is-block" disabled={actions.busy} onclick={() => onDelete(actions, current(live, id)!)}>Delete draft</button>
+                </div>
+
+                <div e:elseif={current(live, id)!.status === "sent"} class="stack is-sm">
+                  <p class="hint">Waiting for {current(live, id)!.clientName} to pay. This page updates the moment they do.</p>
+                  <button class="is-block" disabled={actions.busy} onclick={() => onResend(actions, current(live, id)!)}>Resend email</button>
+                </div>
+
+                <div e:else class="callout is-success">Paid in full by card.</div>
+
+                <div e:if={current(live, id)!.status !== "draft"} class="stack is-xs">
+                  <div class="cluster is-sm">
+                    <a class="button is-sm" href={`/pay/${current(live, id)!.token}`} target="_blank" rel="noopener">Open client view</a>
+                    <button class="is-sm is-ghost" onclick={() => onCopy(actions, `${location.origin}/pay/${current(live, id)!.token}`)}>Copy link</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head"><h2>History</h2></div>
+              <div class="card-body">
+                <ul class="invoice-timeline">
+                  <li><span>Drafted</span><span>{when(current(live, id)!.createdAt)}</span></li>
+                  <li e:if={current(live, id)!.sentAt}><span>Sent</span><span>{when(current(live, id)!.sentAt)}</span></li>
+                  <li e:if={current(live, id)!.paidAt}><span>Paid</span><span>{when(current(live, id)!.paidAt)}</span></li>
+                </ul>
+              </div>
+            </section>
+          </aside>
+        </div>
+
+        <p e:else class="callout">This invoice was deleted.</p>
+      </div>
+    </AppShell>
+  </body>
+</html>

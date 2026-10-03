@@ -1,0 +1,36 @@
+@import "@elements/style";
+@import "./vars.css";
+
+/* An initials disc for a person, shared by every page that names one. */
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--bg-muted);
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+}
+
+.avatar.is-sm {
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 0.625rem;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* A project's color, as a small dot beside its name. */
+.swatch {
+  display: inline-block;
+  flex: none;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 3px;
+}

@@ -1,0 +1,153 @@
+@import "#app/shared/styles/page.css";
+
+.reports-head {
+  justify-content: space-between;
+  align-items: end;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.reports-head h1 {
+  margin: 0;
+}
+
+.range-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-2);
+}
+
+.range-form .field {
+  margin: 0;
+}
+
+.range-form input {
+  width: 10.5rem;
+}
+
+.range-presets {
+  gap: var(--space-1);
+}
+
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.stat-tile {
+  padding: var(--space-4) var(--space-5);
+}
+
+.stat-tile p {
+  margin: 0;
+}
+
+.stat-label {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+
+.stat-value {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.report-grid .is-wide {
+  grid-column: 1 / -1;
+}
+
+.report-table {
+  width: 100%;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-table th:not(:first-child),
+.report-table td:not(:first-child) {
+  text-align: end;
+  white-space: nowrap;
+}
+
+.report-table th:first-child,
+.report-table td:first-child {
+  padding-inline-start: var(--space-5);
+}
+
+.report-table th:last-child,
+.report-table td:last-child {
+  padding-inline-end: var(--space-5);
+}
+
+.report-table tfoot td {
+  font-weight: var(--weight-semibold);
+}
+
+.report-name {
+  gap: var(--space-2);
+}
+
+.report-name small {
+  color: var(--ink-soft);
+}
+
+.share-bar {
+  display: block;
+  height: 4px;
+  margin-top: var(--space-1);
+  border-radius: 2px;
+  background: var(--accent);
+  opacity: 0.7;
+}
+
+.report-grid .card-body {
+  padding: 0;
+  overflow-x: auto;
+}
+
+@media (max-width: 64rem) {
+  .report-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stat-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 40rem) {
+  .stat-tile {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .stat-value {
+    font-size: var(--text-xl);
+  }
+
+  .report-table th,
+  .report-table td {
+    padding-inline: var(--space-2);
+  }
+
+  .report-table th:first-child,
+  .report-table td:first-child {
+    padding-inline-start: var(--space-4);
+  }
+
+  .report-table th:last-child,
+  .report-table td:last-child {
+    padding-inline-end: var(--space-4);
+  }
+}

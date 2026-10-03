@@ -1,0 +1,48 @@
+@layer tokens {
+  :root {
+    --brand-50: oklch(0.985 0.007 45);
+    --brand-100: oklch(0.96 0.019 45);
+    --brand-200: oklch(0.92 0.039 45);
+    --brand-300: oklch(0.86 0.070 45);
+    --brand-400: oklch(0.74 0.140 45);
+    --brand-500: oklch(0.62 0.150 45);
+    --brand-600: oklch(0.52 0.123 45);
+    --brand-700: oklch(0.42 0.100 45);
+    --brand-800: oklch(0.32 0.076 45);
+    --brand-900: oklch(0.22 0.052 45);
+    --brand-950: oklch(0.14 0.033 45);
+    --accent: var(--brand-600);
+    --accent-deep: var(--brand-700);
+    --accent-soft: var(--brand-50);
+    --accent-ink: #ffffff;
+    --accent-edge: var(--brand-200);
+    --link-c: 0.123;
+    --link-h: 45;
+  }
+
+  /* Phones: small controls keep a 40px tap target. */
+  @media (max-width: 48rem) {
+    :root {
+      --button-height-sm: var(--button-height);
+      --input-height-sm: var(--input-height);
+    }
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --accent: var(--brand-400);
+      --accent-deep: var(--brand-300);
+      --accent-soft: var(--brand-900);
+      --accent-ink: var(--brand-950);
+      --accent-edge: var(--brand-700);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --accent: var(--brand-400);
+    --accent-deep: var(--brand-300);
+    --accent-soft: var(--brand-900);
+    --accent-ink: var(--brand-950);
+    --accent-edge: var(--brand-700);
+  }
+}
