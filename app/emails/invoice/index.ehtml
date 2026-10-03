@@ -1,0 +1,36 @@
+import "./style.css";
+import type { Invoice, InvoiceLine } from "#app/shared/services/invoices";
+import { dateRange, hours, invoiceNumber, longDate, money } from "#app/shared/format";
+
+/**
+ * The invoice a client receives, with the link to view and pay it by card.
+ *
+ * @email
+ */
+<html (agency: string, invoice: Invoice, lines: InvoiceLine[], url: string)>
+  <body class="email invoice">
+    <div class="invoice-card">
+      <p class="invoice-agency">{agency}</p>
+      <p>Hi {invoice.clientContact || invoice.clientName},</p>
+      <p>Here is invoice {invoiceNumber(invoice.number)} for work from {dateRange(invoice.periodStart, invoice.periodEnd)}.</p>
+
+      <p class="invoice-amount">{money(invoice.totalCents)}</p>
+      <p class="invoice-meta">Due {invoice.dueDate ? longDate(invoice.dueDate) : "on receipt"}</p>
+
+      <table class="invoice-lines">
+        <tr e:for={line of lines}>
+          <td>{line.description} · {hours(line.seconds)} h at {money(line.rateCents)}/h</td>
+          <td class="amount">{money(line.amountCents)}</td>
+        </tr>
+        <tr class="total">
+          <td>Total</td>
+          <td class="amount">{money(invoice.totalCents)}</td>
+        </tr>
+      </table>
+
+      <p><a class="invoice-button" href={url}>View and pay invoice</a></p>
+
+      <p class="invoice-foot">You can pay by card on the invoice page. Questions? Reply to this email.</p>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,53 @@
+import "./style.css";
+import { redirect } from "@elements/app";
+import { Brand } from "#app/shared/templates/brand";
+import { CurrentUser, signout } from "#app/shared/services/auth";
+import { initials } from "#app/shared/format";
+
+interface NavItem {
+  id: string;
+  href: string;
+  label: string;
+  adminOnly: boolean;
+}
+
+const NAV: NavItem[] = [
+  { id: "track", href: "/", label: "Track", adminOnly: false },
+  { id: "week", href: "/week", label: "Week", adminOnly: false },
+  { id: "reports", href: "/reports", label: "Reports", adminOnly: true },
+  { id: "invoices", href: "/invoices", label: "Invoices", adminOnly: true },
+  { id: "clients", href: "/clients", label: "Clients", adminOnly: true },
+];
+
+function onSignout() {
+  signout();
+  redirect("/signin");
+}
+
+<AppShell (me: CurrentUser, active: string)>
+  <div class="app">
+    <header class="app-header">
+      <div class="app-header-inner row">
+        <Brand />
+
+        <nav class="app-nav row" aria-label="Main">
+          <a e:for={item of NAV.filter((n) => !n.adminOnly || me.role === "admin")}
+             href={item.href}
+             class={[item.id === active && "is-active"]}
+             aria-current={item.id === active ? "page" : undefined}>{item.label}</a>
+        </nav>
+
+        <div class="app-user row">
+          <span class="avatar is-sm">{initials(me.name)}</span>
+          <span class="app-user-name">{me.name}</span>
+          <span e:if={me.role === "admin"} class="pill is-accent">Admin</span>
+          <button class="is-ghost is-sm" onclick={() => onSignout()}>Sign out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-content">
+      <slot/>
+    </main>
+  </div>
+</AppShell>

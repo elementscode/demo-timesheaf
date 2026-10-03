@@ -1,0 +1,149 @@
+import "./style.css";
+import { redirect } from "@elements/app";
+import { AppShell } from "#app/shared/templates/app-shell";
+import { CurrentUser } from "#app/shared/services/auth";
+import { addDays, dateRange, hours, isoDate, money, parseDate, weekStart } from "#app/shared/format";
+import { Report, ReportRow } from "./services";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+
+interface Preset {
+  id: string;
+  label: string;
+  from: string;
+  to: string;
+}
+
+function presets(today: string): Preset[] {
+  let d = parseDate(today);
+  let monday = weekStart(today);
+
+  return [
+    { id: "week", label: "This week", from: monday, to: addDays(monday, 6) },
+    { id: "last-week", label: "Last week", from: addDays(monday, -7), to: addDays(monday, -1) },
+    { id: "month", label: "This month", from: isoDate(new Date(d.getFullYear(), d.getMonth(), 1)), to: isoDate(new Date(d.getFullYear(), d.getMonth() + 1, 0)) },
+    { id: "last-month", label: "Last month", from: isoDate(new Date(d.getFullYear(), d.getMonth() - 1, 1)), to: isoDate(new Date(d.getFullYear(), d.getMonth(), 0)) },
+  ];
+}
+
+function onRange(range: { from: string; to: string }) {
+  redirect(`/reports?from=${range.from}&to=${range.to}`);
+}
+
+function share(row: ReportRow, total: ReportRow): number {
+  return total.seconds ? Math.round(row.seconds / total.seconds * 100) : 0;
+}
+
+<html lang="en" class="page-reports" (
+  me: CurrentUser,
+  report: Report,
+  today: string,
+  private range: { from: string; to: string } = { from: report.from, to: report.to },
+)>
+  <head>
+    <title>Reports · timesheaf</title>
+    <meta name="description" content="Hours and billable amounts by client, project and person.">
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <AppShell {me} active="reports">
+      <div class="stack is-xl">
+        <div class="reports-head row">
+          <div class="stack is-xs">
+            <p class="eyebrow">Reports</p>
+            <h1>{dateRange(report.from, report.to)}</h1>
+          </div>
+
+          <div class="stack is-sm">
+            <nav class="range-presets cluster" aria-label="Date presets">
+              <a e:for={p of presets(today)}
+                 class={["button is-sm", p.from === report.from && p.to === report.to ? "is-primary" : "is-ghost"]}
+                 href={`/reports?from=${p.from}&to=${p.to}`}>{p.label}</a>
+            </nav>
+
+            <form class="range-form" onsubmit={() => onRange(range)}>
+              <div class="field">
+                <label for="from">From</label>
+                <input id="from" type="date" class="is-sm" value={range.from} required>
+              </div>
+              <div class="field">
+                <label for="to">To</label>
+                <input id="to" type="date" class="is-sm" value={range.to} required>
+              </div>
+              <button type="submit" class="is-sm">Apply</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="stat-tiles">
+          <div class="card stat-tile">
+            <p class="stat-label">Hours</p>
+            <p class="stat-value">{hours(report.totals.seconds)}</p>
+          </div>
+          <div class="card stat-tile">
+            <p class="stat-label">Billable hours</p>
+            <p class="stat-value">{hours(report.totals.billableSeconds)}</p>
+          </div>
+          <div class="card stat-tile">
+            <p class="stat-label">Billable amount</p>
+            <p class="stat-value">{money(report.totals.amountCents)}</p>
+          </div>
+          <div class="card stat-tile">
+            <p class="stat-label">Not yet invoiced</p>
+            <p class="stat-value">{money(report.unbilledCents)}</p>
+          </div>
+        </div>
+
+        <div class="report-grid">
+          <ReportTable title="By client" label="Client" rows={report.clients} total={report.totals} />
+          <ReportTable title="By person" label="Person" rows={report.people} total={report.totals} />
+          <div class="is-wide">
+            <ReportTable title="By project" label="Project" rows={report.projects} total={report.totals} />
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  </body>
+</html>
+
+<ReportTable (title: string, label: string, rows: ReportRow[], total: ReportRow)>
+  <section class="card">
+    <div class="card-head"><h2>{title}</h2></div>
+    <div class="card-body">
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>{label}</th>
+            <th>Hours</th>
+            <th>Billable</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr e:for={row of rows}>
+            <td>
+              <span class="report-name row">
+                <span e:if={row.color} class="swatch" style={{ background: row.color }}></span>
+                <span>{row.name} <small e:if={row.detail}>{row.detail === "admin" ? "Admin" : row.detail === "member" ? "" : row.detail}</small></span>
+              </span>
+              <span class="share-bar" style={{ width: `${share(row, total)}%` }}></span>
+            </td>
+            <td>{hours(row.seconds)}</td>
+            <td>{hours(row.billableSeconds)}</td>
+            <td>{money(row.amountCents)}</td>
+          </tr>
+          <tr e:if={rows.length === 0}>
+            <td colspan="4" class="hint">No time in this range.</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>Total</td>
+            <td>{hours(total.seconds)}</td>
+            <td>{hours(total.billableSeconds)}</td>
+            <td>{money(total.amountCents)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+</ReportTable>

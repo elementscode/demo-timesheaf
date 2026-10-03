@@ -1,0 +1,71 @@
+import "./style.css";
+import { LiveView, redirect } from "@elements/app";
+import { InvoiceDoc } from "#app/shared/templates/invoice-doc";
+import { Invoice, InvoiceLine } from "#app/shared/services/invoices";
+import { invoiceNumber, money } from "#app/shared/format";
+import { payInvoice } from "./services";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+
+async function onPay(state: { busy: boolean; error: string }, token: string) {
+  state.busy = true;
+
+  try {
+    redirect(await payInvoice(token));
+  } catch (err: any) {
+    state.error = err.message;
+    state.busy = false;
+  }
+}
+
+<html lang="en" class="page-pay" (
+  agency: string,
+  token: string,
+  live: LiveView<Invoice>,
+  lines: InvoiceLine[],
+  testMode: boolean,
+  cancelled: boolean,
+  private state: { busy: boolean; error: string } = { busy: false, error: "" },
+)>
+  <head>
+    <title>Invoice from {agency}</title>
+    <meta name="description" content="View and pay your invoice.">
+    <meta name="robots" content="noindex">
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <div class="pay-shell">
+      <main class="pay-main stack is-lg">
+        <div e:if={live.at(0)} class="stack is-lg">
+          <section e:if={live.at(0)!.status === "paid"} class="card pay-card is-paid" role="status">
+            <div class="stack is-xs">
+              <strong>Paid. Thank you!</strong>
+              <p e:if={testMode} class="hint">Paid through the test checkout. No card was charged.</p>
+              <p e:else class="hint">A receipt from Stripe is on its way to {live.at(0)!.clientEmail}.</p>
+            </div>
+            <span class="pill is-success"><span class="pill-dot"></span>Paid</span>
+          </section>
+
+          <section e:else class="card pay-card">
+            <div class="stack is-xs">
+              <strong>{money(live.at(0)!.totalCents)} due for invoice {invoiceNumber(live.at(0)!.number)}</strong>
+              <span e:if={!testMode} class="pay-lock row">
+                <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2M3.5 7h9v6.5h-9z" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linejoin="round"/></svg>
+                Card payment by Stripe. We never see your card number.
+              </span>
+              <span e:else class="pay-lock row">Test mode: Pay opens the built-in test checkout. No card is charged.</span>
+              <p e:if={cancelled && !state.error} class="hint">Checkout was cancelled. Nothing was charged.</p>
+              <p e:if={state.error} class="error" role="alert">{state.error}</p>
+            </div>
+            <button class="is-primary is-lg" disabled={state.busy} onclick={() => onPay(state, token)}>
+              {state.busy ? "Opening checkout…" : `Pay ${money(live.at(0)!.totalCents)}`}
+            </button>
+          </section>
+
+          <InvoiceDoc {agency} invoice={live.at(0)!} {lines} />
+        </div>
+
+        <p class="pay-foot">Sent by {agency} with timesheaf.</p>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,53 @@
+@import "#app/shared/styles/page.css";
+
+.pay-shell {
+  min-height: 100dvh;
+  background: var(--bg-soft);
+}
+
+.pay-main {
+  width: 100%;
+  max-width: 48rem;
+  margin-inline: auto;
+  padding: var(--space-10) var(--space-5) var(--space-16);
+}
+
+.pay-card {
+  padding: var(--space-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.pay-card p {
+  margin: 0;
+}
+
+.pay-card.is-paid {
+  border-color: color-mix(in oklab, var(--success) 40%, var(--rule));
+  background: color-mix(in oklab, var(--success) 6%, var(--bg));
+}
+
+.pay-lock {
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+.pay-foot {
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+
+@media (max-width: 40rem) {
+  .pay-main {
+    padding: var(--space-5) var(--space-4) var(--space-12);
+  }
+
+  .pay-card button {
+    width: 100%;
+  }
+}

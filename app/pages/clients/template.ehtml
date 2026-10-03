@@ -1,0 +1,169 @@
+import "./style.css";
+import { AppShell } from "#app/shared/templates/app-shell";
+import { CurrentUser } from "#app/shared/services/auth";
+import { hours, money } from "#app/shared/format";
+import { ClientSummary, ClientProject, NewClient, NewProject, addClient, addProject, setArchived, setRate } from "./services";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+
+const COLORS = ["#c2410c", "#15803d", "#1d4ed8", "#7c3aed", "#be185d", "#0f766e", "#a16207"];
+
+interface State {
+  clients: ClientSummary[];
+  error: string;
+}
+
+function onAddClient(state: State, form: NewClient) {
+  try {
+    state.clients = addClient(form);
+    form.name = "";
+    form.contactName = "";
+    form.email = "";
+    state.error = "";
+  } catch (err: any) {
+    state.error = err.message;
+  }
+}
+
+function onAddProject(state: State, form: NewProject) {
+  try {
+    state.clients = addProject(form);
+    form.name = "";
+    form.rate = "";
+    form.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+    state.error = "";
+  } catch (err: any) {
+    state.error = err.message;
+  }
+}
+
+function onRate(state: State, project: ClientProject, e: Event) {
+  let value = (e.target as HTMLInputElement).value;
+
+  try {
+    state.clients = setRate(project.id, value);
+    state.error = "";
+  } catch (err: any) {
+    state.error = err.message;
+  }
+}
+
+function onArchive(state: State, project: ClientProject) {
+  state.clients = setArchived(project.id, !project.archived);
+}
+
+<html lang="en" class="page-clients" (
+  me: CurrentUser,
+  clients: ClientSummary[],
+  private state: State = { clients, error: "" },
+  private form: NewClient = { name: "", contactName: "", email: "" },
+)>
+  <head>
+    <title>Clients · timesheaf</title>
+    <meta name="description" content="Clients, projects and rates.">
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <AppShell {me} active="clients">
+      <div class="stack is-xl">
+        <div class="stack is-xs">
+          <p class="eyebrow">{state.clients.length} clients</p>
+          <h1>Clients and projects</h1>
+        </div>
+
+        <p e:if={state.error} class="callout is-danger" role="alert">{state.error}</p>
+
+        <div class="clients-grid">
+          <div class="stack is-lg">
+            <ClientCard e:for={client of state.clients} {client} {state} />
+          </div>
+
+          <section class="card">
+            <div class="card-head"><h2>New client</h2></div>
+            <form class="card-body stack" onsubmit={() => onAddClient(state, form)}>
+              <div class="field">
+                <label for="client-name">Company</label>
+                <input id="client-name" value={form.name} required>
+              </div>
+              <div class="field">
+                <label for="client-contact">Contact</label>
+                <input id="client-contact" value={form.contactName} autocomplete="off">
+              </div>
+              <div class="field">
+                <label for="client-email">Billing email</label>
+                <input id="client-email" type="email" value={form.email} autocapitalize="none" spellcheck={false} required>
+                <p class="hint">Invoices are emailed here.</p>
+              </div>
+              <button type="submit" class="is-primary">Add client</button>
+            </form>
+          </section>
+        </div>
+      </div>
+    </AppShell>
+  </body>
+</html>
+
+<ClientCard (
+  client: ClientSummary,
+  state: State,
+  private draft: NewProject = { clientId: client.id, name: "", rate: "", color: COLORS[0] },
+)>
+  <section class="card client-card">
+    <div class="card-head">
+      <h2>{client.name}</h2>
+      <span class="client-contact">{client.contactName ? `${client.contactName} · ` : ""}{client.email}</span>
+    </div>
+    <div class="card-body">
+      <table class="project-table">
+        <colgroup>
+          <col>
+          <col class="col-hours">
+          <col class="col-money">
+          <col class="col-rate">
+          <col class="col-actions">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Project</th>
+            <th class="is-hours">Hours</th>
+            <th class="is-hours">Unbilled $</th>
+            <th>Rate / h</th>
+            <th><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr e:for={project of client.projects} class={[project.archived && "is-archived"]}>
+            <td>
+              <span class="project-name row">
+                <span class="swatch" style={{ background: project.color }}></span>
+                {project.name}
+                <span e:if={project.archived} class="pill">Archived</span>
+              </span>
+            </td>
+            <td class="is-hours">{hours(project.totalSeconds)}</td>
+            <td class="is-hours">{money(Math.round(project.unbilledSeconds * project.rateCents / 3600))}</td>
+            <td>
+              <input class="rate-input is-sm"
+                     value={(project.rateCents / 100).toFixed(2)}
+                     inputmode="decimal"
+                     aria-label={`Hourly rate for ${project.name}`}
+                     onchange={(e) => onRate(state, project, e)}>
+            </td>
+            <td>
+              <button class="is-ghost is-sm" onclick={() => onArchive(state, project)}>{project.archived ? "Restore" : "Archive"}</button>
+            </td>
+          </tr>
+          <tr e:if={client.projects.length === 0}>
+            <td colspan="5" class="hint">No projects yet.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <form class="add-project" onsubmit={() => onAddProject(state, draft)}>
+        <input class="is-sm is-name" value={draft.name} placeholder="New project" aria-label="Project name" required>
+        <input class="is-sm" value={draft.rate} placeholder="Rate $/h" inputmode="decimal" aria-label="Hourly rate" required>
+        <input class="is-sm" type="color" value={draft.color} aria-label="Color">
+        <button type="submit" class="is-sm">Add project</button>
+      </form>
+    </div>
+  </section>
+</ClientCard>

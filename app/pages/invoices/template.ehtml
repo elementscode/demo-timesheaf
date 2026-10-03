@@ -1,0 +1,237 @@
+import "./style.css";
+import { LiveView, redirect } from "@elements/app";
+import { AppShell } from "#app/shared/templates/app-shell";
+import { CurrentUser } from "#app/shared/services/auth";
+import { Invoice, InvoiceLine, InvoiceStatus, createInvoice, previewInvoice } from "#app/shared/services/invoices";
+import { dateRange, hours, invoiceNumber, money, shortDate } from "#app/shared/format";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+
+export interface ClientUnbilled {
+  id: string;
+  name: string;
+  unbilledCents: number;
+  firstDate: string | null;
+  lastDate: string | null;
+}
+
+interface Draft {
+  clientId: string;
+  from: string;
+  to: string;
+  lines: InvoiceLine[] | null;
+  error: string;
+  busy: boolean;
+}
+
+type Filter = "all" | InvoiceStatus;
+
+const FILTERS: { id: Filter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "draft", label: "Drafts" },
+  { id: "sent", label: "Sent" },
+  { id: "paid", label: "Paid" },
+];
+
+export function statusClass(status: InvoiceStatus): string {
+  switch (status) {
+    case "paid":
+      return "is-success";
+
+    case "sent":
+      return "is-info";
+
+    default:
+      return "";
+  }
+}
+
+function listed(invoices: LiveView<Invoice>, filter: Filter): Invoice[] {
+  return invoices
+    .filter((i) => filter === "all" || i.status === filter)
+    .sort((a, b) => b.number - a.number);
+}
+
+function totalOf(invoices: LiveView<Invoice>, status: InvoiceStatus): number {
+  return invoices.filter((i) => i.status === status).reduce((sum, i) => sum + i.totalCents, 0);
+}
+
+function countOf(invoices: LiveView<Invoice>, status: InvoiceStatus): number {
+  return invoices.filter((i) => i.status === status).length;
+}
+
+function onPreview(draft: Draft) {
+  draft.busy = true;
+
+  try {
+    draft.lines = previewInvoice(draft.clientId, draft.from, draft.to);
+    draft.error = "";
+  } catch (err: any) {
+    draft.error = err.message;
+    draft.lines = null;
+  }
+
+  draft.busy = false;
+}
+
+function onCreate(draft: Draft) {
+  draft.busy = true;
+
+  try {
+    let id = createInvoice(draft.clientId, draft.from, draft.to);
+    redirect(`/invoices/${id}`);
+  } catch (err: any) {
+    draft.error = err.message;
+    draft.busy = false;
+  }
+}
+
+function onChange(draft: Draft) {
+  draft.lines = null;
+  draft.error = "";
+}
+
+function onFilter(view: { filter: Filter }, filter: Filter) {
+  view.filter = filter;
+}
+
+<html lang="en" class="page-invoices" (
+  me: CurrentUser,
+  clients: ClientUnbilled[],
+  invoices: LiveView<Invoice>,
+  defaults: { clientId: string; from: string; to: string },
+  private view: { filter: Filter } = { filter: "all" as Filter },
+  private draft: Draft = { ...defaults, lines: null, error: "", busy: false },
+)>
+  <head>
+    <title>Invoices · timesheaf</title>
+    <meta name="description" content="Draft, send and collect invoices.">
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <AppShell {me} active="invoices">
+      <div class="stack is-xl">
+        <div class="stack is-xs">
+          <p class="eyebrow">Billing</p>
+          <h1>Invoices</h1>
+        </div>
+
+        <div class="invoice-tiles">
+          <div class="card invoice-tile">
+            <p class="tile-label">Outstanding</p>
+            <p class="tile-value">{money(totalOf(invoices, "sent"))}</p>
+            <p class="tile-note">{countOf(invoices, "sent")} sent, awaiting payment</p>
+          </div>
+          <div class="card invoice-tile">
+            <p class="tile-label">Collected</p>
+            <p class="tile-value">{money(totalOf(invoices, "paid"))}</p>
+            <p class="tile-note">{countOf(invoices, "paid")} paid</p>
+          </div>
+          <div class="card invoice-tile">
+            <p class="tile-label">In draft</p>
+            <p class="tile-value">{money(totalOf(invoices, "draft"))}</p>
+            <p class="tile-note">{countOf(invoices, "draft")} not sent yet</p>
+          </div>
+        </div>
+
+        <div class="invoices-grid">
+          <section class="card invoice-list">
+            <div class="tabs">
+              <div class="tab-list" role="tablist">
+                <button e:for={f of FILTERS}
+                        role="tab"
+                        aria-selected={view.filter === f.id}
+                        class={["tab", view.filter === f.id && "is-active"]}
+                        onclick={() => onFilter(view, f.id)}>{f.label}</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <table class="invoice-table">
+                <thead>
+                  <tr>
+                    <th>Invoice</th>
+                    <th class="is-period">Period</th>
+                    <th class="is-amount">Amount</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr e:for={invoice of listed(invoices, view.filter)}>
+                    <td>
+                      <a href={`/invoices/${invoice.id}`}>{invoiceNumber(invoice.number)}</a>
+                      <small>{invoice.clientName}</small>
+                    </td>
+                    <td class="is-period">{dateRange(invoice.periodStart, invoice.periodEnd)}</td>
+                    <td class="is-amount">{money(invoice.totalCents)}</td>
+                    <td>
+                      <span class={["pill status-pill", statusClass(invoice.status)]}>
+                        <span e:if={invoice.status !== "draft"} class="pill-dot"></span>
+                        {invoice.status}
+                      </span>
+                    </td>
+                  </tr>
+                  <tr e:if={listed(invoices, view.filter).length === 0}>
+                    <td colspan="4" class="hint">No invoices here.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-head"><h2>New invoice</h2></div>
+            <form class="card-body stack" onsubmit={() => onPreview(draft)}>
+              <div class="field">
+                <label for="inv-client">Client</label>
+                <select id="inv-client" value={draft.clientId} onchange={() => onChange(draft)}>
+                  <option e:for={c of clients} value={c.id}>{c.name}{c.unbilledCents > 0 ? ` · ${money(c.unbilledCents)} unbilled` : ""}</option>
+                </select>
+              </div>
+
+              <div class="range-pair">
+                <div class="field">
+                  <label for="inv-from">From</label>
+                  <input id="inv-from" type="date" value={draft.from} onchange={() => onChange(draft)} required>
+                </div>
+                <div class="field">
+                  <label for="inv-to">To</label>
+                  <input id="inv-to" type="date" value={draft.to} onchange={() => onChange(draft)} required>
+                </div>
+              </div>
+
+              <p class="hint">Gathers the client's unbilled, billable time in the range into line items, one per project.</p>
+
+              <p e:if={draft.error} class="error" role="alert">{draft.error}</p>
+
+              <button e:if={draft.lines === null} type="submit" disabled={draft.busy}>Preview line items</button>
+
+              <div e:else class="stack">
+                <p e:if={draft.lines!.length === 0} class="callout">No unbilled time for this client in that range.</p>
+
+                <table e:else class="preview-lines">
+                  <tbody>
+                    <tr e:for={line of draft.lines!}>
+                      <td>{line.description}<br><small class="hint">{hours(line.seconds)} h × {money(line.rateCents)}</small></td>
+                      <td>{money(line.amountCents)}</td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td>Total</td>
+                      <td>{money(draft.lines!.reduce((sum, l) => sum + l.amountCents, 0))}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+
+                <button e:if={draft.lines!.length > 0}
+                        type="button"
+                        class="is-primary"
+                        disabled={draft.busy}
+                        onclick={() => onCreate(draft)}>Create draft invoice</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      </div>
+    </AppShell>
+  </body>
+</html>

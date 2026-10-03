@@ -1,0 +1,118 @@
+import "./style.css";
+import { redirect } from "@elements/app";
+import { Brand } from "#app/shared/templates/brand";
+import { DemoLogin, signin } from "#app/shared/services/auth";
+import { initials } from "#app/shared/format";
+import favicon from "#app/shared/assets/favicons/favicon.svg";
+
+interface SigninForm {
+  email: string;
+  password: string;
+  error: string;
+  busy: boolean;
+}
+
+function onSubmit(form: SigninForm) {
+  form.busy = true;
+
+  try {
+    signin(form.email, form.password);
+    form.error = "";
+    redirect("/");
+  } catch (err: any) {
+    form.error = err.message;
+    form.busy = false;
+  }
+}
+
+function onPick(form: SigninForm, login: DemoLogin, password: string) {
+  form.email = login.email;
+  form.password = password;
+  onSubmit(form);
+}
+
+<html lang="en" class="page-signin" (
+  logins: DemoLogin[],
+  demoPassword: string,
+  private form: SigninForm = { email: "", password: "", error: "", busy: false },
+)>
+  <head>
+    <title>Sign in · timesheaf</title>
+    <meta name="description" content="Time tracking and invoicing for the studio.">
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+  </head>
+  <body>
+    <div class="signin-shell">
+      <aside class="signin-aside">
+        <Brand />
+
+        <div class="stack is-lg">
+          <h1>Every billable hour, gathered and invoiced.</h1>
+          <p class="lede">Run a timer against a project, see the week at a glance, and turn unbilled time into an invoice your client can pay by card.</p>
+        </div>
+
+        <div class="signin-week" aria-hidden="true">
+          <span style="height: 62%"></span>
+          <span style="height: 88%"></span>
+          <span style="height: 74%"></span>
+          <span style="height: 100%"></span>
+          <span style="height: 48%"></span>
+        </div>
+      </aside>
+
+      <main class="signin-main">
+        <div class="signin-panel stack is-xl">
+          <form class="stack" onsubmit={() => onSubmit(form)}>
+            <h2>Sign in</h2>
+
+            <p e:if={form.error} class="error" role="alert">{form.error}</p>
+
+            <div class="field">
+              <label for="email">Email</label>
+              <input id="email"
+                     name="email"
+                     type="email"
+                     value={form.email}
+                     autocomplete="email"
+                     autocapitalize="none"
+                     spellcheck={false}
+                     placeholder="you@studio.com"
+                     required>
+            </div>
+
+            <div class="field">
+              <label for="password">Password</label>
+              <input id="password"
+                     name="password"
+                     type="password"
+                     value={form.password}
+                     autocomplete="current-password"
+                     required>
+            </div>
+
+            <button type="submit" class="is-primary is-block" disabled={form.busy}>Sign in</button>
+          </form>
+
+          <section e:if={logins.length > 0} class="demo-logins stack is-sm">
+            <p class="eyebrow">Demo accounts · password <code>{demoPassword}</code></p>
+
+            <div class="demo-list">
+              <button e:for={login of logins}
+                      type="button"
+                      class="demo-login is-ghost"
+                      disabled={form.busy}
+                      onclick={() => onPick(form, login, demoPassword)}>
+                <span class="avatar">{initials(login.name)}</span>
+                <span class="demo-who">
+                  <strong>{login.name}</strong>
+                  <small>{login.email}</small>
+                </span>
+                <span class={["pill", login.role === "admin" && "is-accent"]}>{login.role === "admin" ? "Admin" : "Team"}</span>
+              </button>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

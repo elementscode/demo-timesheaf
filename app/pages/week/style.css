@@ -1,0 +1,122 @@
+@import "#app/shared/styles/page.css";
+
+.week-head {
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.week-head h1 {
+  margin: 0;
+}
+
+.week-controls {
+  gap: var(--space-3);
+}
+
+.week-controls select {
+  width: auto;
+  min-width: 12rem;
+}
+
+.week-table-wrap {
+  overflow-x: auto;
+}
+
+.week-table {
+  width: 100%;
+  min-width: 44rem;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.week-table th,
+.week-table td {
+  text-align: end;
+  white-space: nowrap;
+}
+
+.week-table th:first-child,
+.week-table td:first-child {
+  text-align: start;
+  white-space: normal;
+}
+
+.week-table thead th small {
+  display: block;
+  color: var(--ink-dim);
+  font-weight: var(--weight-regular, 400);
+}
+
+.week-table th.is-today {
+  color: var(--accent);
+}
+
+.week-table td.is-today {
+  background: color-mix(in oklab, var(--accent) 5%, transparent);
+}
+
+.week-table td.is-empty {
+  color: var(--ink-faint);
+}
+
+.week-table td.is-running {
+  color: var(--accent);
+  font-weight: var(--weight-semibold);
+}
+
+.week-project {
+  gap: var(--space-2);
+}
+
+.week-project small {
+  color: var(--ink-soft);
+}
+
+.week-table tfoot td,
+.week-table .week-total {
+  font-weight: var(--weight-semibold);
+}
+
+.week-bars {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-3);
+  align-items: end;
+  height: 11rem;
+  padding: var(--space-4) var(--space-5) 0;
+}
+
+.week-bar {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  gap: var(--space-1);
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+
+.week-bar-fill {
+  display: flex;
+  flex-direction: column-reverse;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  overflow: hidden;
+  min-height: 2px;
+  background: var(--bg-muted);
+}
+
+.week-bar-fill span {
+  display: block;
+}
+
+.week-bar-labels {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-5) var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+  text-align: center;
+}
