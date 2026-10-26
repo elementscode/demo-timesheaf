@@ -1,24 +1,12 @@
-![Timesheaf, a time tracking and invoicing app built with Elements: the invoices page with outstanding, collected and draft totals, six invoices in draft, sent and paid, and the new invoice form.](https://elements.dev/demos/01a0f3c4-aa66-7b70-bf8c-26ee1b0689c3/poster?v=6858c4b5237e)
+![Time tracking with billable invoices, built by Claude Code on Elements: the invoices page with outstanding, collected and draft totals, six invoices in draft, sent and paid, and the new invoice form.](https://elements.dev/demos/01a0f3c4-aa66-7b70-bf8c-26ee1b0689c3/poster?v=6858c4b5237e)
 
-# Timesheaf
+# Time tracking with billable invoices, built by Claude Code on Elements
 
-> A demo app built with [Elements](https://elements.dev).
+> Timesheaf is a full-stack app built with Claude Code on Elements.
 
 Live timers, a week view of hours per project, billable reports by client and person, and invoices clients pay by card.
 
-**Demo:** [Timesheaf](https://elements.dev/demos/01a0f3c4-aa66-7b70-bf8c-26ee1b0689c3)
-
-## Agent specs
-
-- **Agent:** Claude Code, Opus 5.5 Medium
-- **Time:** 25 min
-- **Cost:** $8.73 at API rates, September 2026
-
-## Get started
-
-```bash
-elements create timesheaf -scaffold=elementscode/demo-timesheaf
-```
+[Run this app on your machine](https://elements.dev/demos/01a0f3c4-aa66-7b70-bf8c-26ee1b0689c3). Use this demo as inspiration, or as the starting point for your own app. Your agent creates a new app with this one as the scaffold, and you prompt it to add whatever features you want.
 
 ## Payments
 
@@ -43,8 +31,6 @@ Stripe webhook the first time a client starts a checkout.
 
 Timesheaf needed timers the team can see running, a week of hours per person, invoices built from tracked time, and a way for clients to pay those invoices by card. Each of those is a part of Elements, so the agent spent its 25 minutes on the agency's workflow itself.
 
-### What Elements gave the app
-
 - **Live timers.** Time entries are a LiveTable opened per person for the week view and as one team-wide view of running timers. Stopping a timer folds the elapsed time in on the server's clock, and every teammate's screen shows it stop.
 
 - **Invoices from time.** `@rpc` functions gather a client's unbilled entries into a draft and email the client a link to view and pay it. Invoices are a LiveTable, so the invoices list shows a payment the moment it lands.
@@ -57,36 +43,6 @@ Timesheaf needed timers the team can see running, a week of hours per person, in
 
 - **Sessions and roles.** Invoicing is for admins, and each time entry checks that it belongs to the signed-in person.
 
-### What the project server gave the agent
+## Why Elements
 
-The project server runs alongside the agent and answers as soon as a file is saved: it type-checks the templates, TypeScript and SQL, applies migrations and reruns the tests, so every question came back right away and the agent kept building.
-
-### What shipped
-
-The app type-checks with zero errors and all 21 tests pass. Every page works on desktop and phone, and live updates arrive across tabs, such as a teammate's timer starting or stopping. A real sandbox payment went through Stripe end to end.
-
-## Seed data and demo accounts
-
-The seed loads in every environment: four clients (Fernwood Coffee, Northwind
-Outfitters, Harbor Health, Lumen Books), six projects with hourly rates, the
-last 30 days of time entries, two timers running, and six invoices: three
-paid, two sent and one draft. Lumen Books has no invoice yet, so you can make
-one. The dates follow the day you run it.
-
-Every account's password is `timesheaf`, and the sign-in page lists them.
-
-| Email                | Role        |
-| -------------------- | ----------- |
-| maya@timesheaf.test  | admin       |
-| jonah@timesheaf.test | team member |
-| priya@timesheaf.test | team member |
-| theo@timesheaf.test  | team member |
-
-In development, invoice emails are written to `.elements/logs/program.log`
-instead of being sent.
-
-**Demo:** [Timesheaf](https://elements.dev/demos/01a0f3c4-aa66-7b70-bf8c-26ee1b0689c3)
-
-## License
-
-MIT. See [LICENSE](LICENSE).
+Elements is an integrated full-stack app framework and a project server. The project server checks the agent's work as it builds: it type-checks the server and browser code, analyzes the program, applies migrations and runs the tests, then reports the results to the agent. A security mistake, such as calling a server-only function from the browser, is a compile error. The agent reads the report and fixes its own mistakes before it tells you a feature is done. The same checks run on every feature you ask for next.
